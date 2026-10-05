@@ -162,5 +162,5 @@ Automatic scheduled data refreshes and hosted update workflows are outside the c
 
 ## Author
 
-Khamid  
+Khamidullokhon Abdurakhmonov
 Computer Science, Florida International University
