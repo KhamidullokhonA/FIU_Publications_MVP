@@ -102,7 +102,7 @@ Display the individual papers behind each count
 
 The current date inputs are interpreted at the **year level**. Months and days are not used because the CSRankings source records used by the app provide publication years rather than reliable exact publication dates.
 
-## Generating a Fresh `articles.json`
+## Generating a Fresh `articles.json` (Function of "Update Publication Data" Button)
 
 If you have a local clone of the CSRankings repository, publication data can be regenerated from the CSRankings pipeline.
 
