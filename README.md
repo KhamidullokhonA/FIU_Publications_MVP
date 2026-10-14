@@ -48,13 +48,24 @@ lxml
 xmltodict
 requests
 ```
+## Getting started with a copy of CSrankings in your device
 
+If you have a local clone of the CSRankings repository, publication data can be regenerated from the CSRankings pipeline.
+
+If not you can clone its latest commit (you do not need entire history of commits):
+
+```bash
+git clone --depth 1 --branch gh-pages https://github.com/emeryberger/CSrankings.git
+```
+
+
+The Streamlit application will use the new snapshot the next time the data is loaded. Make sure it is in the same folder as your FIU_Publications_MVP project 
 ## Running the Application
 
 Clone this repository:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/FIU_Publications_MVP.git
+git clone https://github.com/KhamidullokhonA/FIU_Publications_MVP.git
 cd FIU_Publications_MVP
 ```
 
@@ -102,37 +113,6 @@ Display the individual papers behind each count
 
 The current date inputs are interpreted at the **year level**. Months and days are not used because the CSRankings source records used by the app provide publication years rather than reliable exact publication dates.
 
-## Generating a Fresh `articles.json` (Function of "Update Publication Data" Button)
-
-If you have a local clone of the CSRankings repository, publication data can be regenerated from the CSRankings pipeline.
-
-Example:
-
-```bash
-git clone --branch gh-pages https://github.com/emeryberger/CSrankings.git
-cd CSrankings
-```
-
-Then update and process the DBLP data:
-
-```bash
-make update-dblp PYTHON=python3
-make generated-author-info.csv PYTHON=python3 PYPY=python3
-```
-
-After the processing completes, verify that `articles.json` exists:
-
-```bash
-ls -lh articles.json
-```
-
-Then copy the updated file into this project:
-
-```bash
-cp articles.json /path/to/FIU_Publications_MVP/
-```
-
-The Streamlit application will use the new snapshot the next time the data is loaded.
 
 ## Important Data Notes
 
