@@ -221,19 +221,30 @@ st.info(
     "Months and days are not used because the source only supplies a publication year."
 )
 
-selected = articles.loc[articles["Year"].between(start_year, end_year)].copy()
-
-# Snapshot roster is all professors listed with FIU as institution ANYWHERE
-# in the input file. This is not an independently verified current FIU roster.
+# The roster includes every FIU-tagged author in the snapshot, even if they
+# have no papers in the currently selected year range.
 roster = articles["Professor"].drop_duplicates().sort_values().tolist()
+chosen_professors = st.multiselect(
+    "Filter professors (optional)",
+    options=roster,
+    default=[],
+    placeholder="Select professors to compare...",
+    help="Leave empty to show all professors. Choose multiple names to compare a subset.",
+)
+active_roster = chosen_professors if chosen_professors else roster
+
+selected = articles.loc[
+    articles["Year"].between(start_year, end_year)
+    & articles["Professor"].isin(active_roster)
+].copy()
 counts = selected.groupby("Professor").size()
 summary = pd.DataFrame({
-    "Professor": roster,
-    "Paper count": [int(counts.get(person, 0)) for person in roster],
+    "Professor": active_roster,
+    "Paper count": [int(counts.get(person, 0)) for person in active_roster],
 }).sort_values(["Paper count", "Professor"], ascending=[False, True], ignore_index=True)
 
 m1, m2, m3 = st.columns(3)
-m1.metric("Professors in snapshot", len(roster))
+m1.metric("Professors shown", len(active_roster))
 m2.metric("Professors with papers in range", int((summary["Paper count"] > 0).sum()))
 m3.metric("Professor–paper records", len(selected))
 
@@ -246,7 +257,26 @@ st.download_button(
     mime="text/csv",
 )
 
-st.subheader("Papers by professor")
+st.subheader("Papers for selected professors")
+if selected.empty:
+    st.write("No qualifying papers for these professors in the selected years.")
+else:
+    st.dataframe(
+        selected[["Professor", "Year", "Title", "Venue", "Area", "Page count"]]
+        .sort_values(["Professor", "Year", "Title"], ascending=[True, False, True]),
+        use_container_width=True,
+        hide_index=True,
+    )
+    st.download_button(
+        "Download selected professors' papers (CSV)",
+        data=selected[["Professor", "Year", "Title", "Venue", "Area", "Page count"]]
+        .sort_values(["Professor", "Year", "Title"], ascending=[True, False, True])
+        .to_csv(index=False).encode("utf-8-sig"),
+        file_name=f"fiu_selected_professors_papers_{start_year}_{end_year}.csv",
+        mime="text/csv",
+    )
+
+st.subheader("Individual professor details")
 professor = st.selectbox("Choose a professor", summary["Professor"].tolist())
 professor_papers = (
     selected.loc[selected["Professor"] == professor]
@@ -270,15 +300,7 @@ else:
     )
 
 st.divider()
-st.download_button(
-    "Download all matching paper records (CSV)",
-    data=selected.sort_values(["Professor", "Year"], ascending=[True, False])
-    .to_csv(index=False).encode("utf-8-sig"),
-    file_name=f"fiu_all_papers_{start_year}_{end_year}.csv",
-    mime="text/csv",
-)
-
-# Nested output with ALL roster members including zero-paper professors.
+# Nested output with all filtered roster members, including zero-paper professors.
 papers_by_professor = {
     name: group[["Year", "Title", "Venue", "Area", "Page count"]]
     .rename(columns={"Year": "year", "Title": "title", "Venue": "venue", "Area": "area", "Page count": "pageCount"})
