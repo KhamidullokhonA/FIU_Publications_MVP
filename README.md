@@ -20,7 +20,7 @@ The app uses a locally generated `articles.json` snapshot from the CSRankings da
 ```text
 FIU_Publications_MVP/
 ├── fiu_publications_app.py
-├── articles.json
+├── articles.json       # Git LFS tracked
 ├── requirements.txt
 └── README.md
 ```
@@ -48,46 +48,157 @@ lxml
 xmltodict
 requests
 ```
-## Getting started with a copy of CSrankings in your device
+## Getting Started
 
-If you have a local clone of the CSRankings repository, publication data can be regenerated from the CSRankings pipeline.
+### 1. Get a local copy of CSRankings (for regenerating data)
 
-If not you can clone its latest commit (you do not need entire history of commits):
+If you plan to regenerate publication data, you need a local copy of the CSRankings repository. If you already have one, you can reuse it. Otherwise, clone the `gh-pages` branch with a shallow clone:
 
 ```bash
 git clone --depth 1 --branch gh-pages https://github.com/emeryberger/CSrankings.git
 ```
 
+This creates a separate `CSrankings` directory. The FIU tracker does **not** automatically generate a fresh `articles.json` merely because you cloned CSRankings; regenerating the snapshot requires running the CSRankings data-processing pipeline. For simply running the tracker using its existing snapshot, you can skip this step.
 
-The Streamlit application will use the new snapshot the next time the data is loaded. Make sure it is in the same folder as your FIU_Publications_MVP project 
-## Running the Application
+### 2. Install Git LFS (macOS and Windows)
 
-Clone this repository:
+The project's `articles.json` is approximately 150 MB and uses **Git Large File Storage (Git LFS)**. Install and initialize Git LFS before cloning so Git can download the actual file instead of leaving an LFS pointer.
+
+#### macOS — Terminal
+
+First, check whether Homebrew is already installed:
+
+```bash
+brew --version
+```
+
+If Terminal says `command not found: brew`, install Homebrew:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+Follow the **Next steps** printed by the Homebrew installer to add `brew` to your shell's PATH, if instructed. Then run:
+
+```bash
+brew install git-lfs
+git lfs install
+git lfs version
+```
+
+#### Windows — PowerShell or Windows Terminal
+
+Homebrew is not the standard Windows installer. Use **WinGet**, the Windows package manager, instead. First check whether it is available:
+
+```powershell
+winget --version
+```
+
+If WinGet is unavailable, install/update **App Installer** from the Microsoft Store, or see [Microsoft's WinGet documentation](https://learn.microsoft.com/en-us/windows/package-manager/winget/).
+
+Install Git (if not already installed) and Git LFS:
+
+```powershell
+winget install --id Git.Git -e --source winget
+winget install --id GitHub.GitLFS -e --source winget
+```
+
+Open a **new** PowerShell window after installation, then initialize and verify:
+
+```powershell
+git lfs install
+git lfs version
+```
+
+**Alternative for either OS:** Download Git LFS from [git-lfs.com](https://git-lfs.com/) and follow its platform-specific installation instructions.
+
+### 3. Clone the FIU Publication Tracker
 
 ```bash
 git clone https://github.com/KhamidullokhonA/FIU_Publications_MVP.git
 cd FIU_Publications_MVP
 ```
 
-Install dependencies:
+Git LFS should fetch `articles.json` automatically during a normal clone. To explicitly retrieve LFS files (or if you had already cloned the repository), run:
+
+```bash
+git lfs pull
+```
+
+Verify that the file is present and is the **actual JSON**, not a small LFS pointer:
+
+```bash
+git lfs ls-files
+```
+
+Check the file size using your operating system's terminal:
+
+**macOS:**
+
+```bash
+ls -lh articles.json
+```
+
+**Windows PowerShell:**
+
+```powershell
+Get-Item articles.json | Select-Object Name, Length
+```
+
+`articles.json` should be roughly 150 MB. It must be in the same directory as `fiu_publications_app.py`.
+
+### 4. Install Python Dependencies
+
+**macOS:**
 
 ```bash
 python3 -m pip install -r requirements.txt
 ```
 
-Make sure `articles.json` is in the same directory as `fiu_publications_app.py`.
+**Windows PowerShell:**
 
-Run the application:
+```powershell
+py -m pip install -r requirements.txt
+```
+
+### 5. Run the Application
+
+**macOS:**
 
 ```bash
 python3 -m streamlit run fiu_publications_app.py
 ```
 
-Streamlit will normally open the application at:
+**Windows PowerShell:**
 
-```text
-http://localhost:8501
+```powershell
+py -m streamlit run fiu_publications_app.py
 ```
+
+Streamlit normally opens at `http://localhost:8501`.
+
+### Troubleshooting Git LFS
+
+**`articles.json` is missing or very small:** From the tracker repository directory, try:
+
+```bash
+git lfs pull
+git lfs checkout
+```
+
+Check the file size with `ls -lh articles.json` (macOS) or `Get-Item articles.json | Select-Object Name, Length` (Windows PowerShell).
+
+**`Object does not exist on the server: [404]` or `Smudge error`:** This is not necessarily an installation problem. The repository may have an LFS pointer whose underlying object was not uploaded or is not accessible. Check:
+
+```bash
+git lfs logs last
+git remote -v
+git lfs ls-files
+```
+
+If the object is genuinely missing from remote LFS storage, `git lfs pull` and recloning won't fix it. A maintainer who still has the *full* `articles.json` and its LFS object locally needs to upload the missing object. From a repository with the object available, they can use `git lfs push origin --all` (which uploads locally available objects referenced by the repository's Git history). Otherwise the maintainer must restore the file from a backup and recommit/re-upload it properly.
+
+**Avoid committing the 150 MB file as a regular Git file:** GitHub generally rejects regular files larger than 100 MB. Keep the file in Git LFS.
 
 ## How the Data Works
 
