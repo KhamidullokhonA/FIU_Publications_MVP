@@ -38,7 +38,6 @@ def load_fiu_articles(path: str, mtime_ns: int) -> pd.DataFrame:
             "Professor": item["name"],
             "Year": int(item["year"]),
             "Title": item["title"],
-            "Venue": item.get("conf", ""),
             "Area": item.get("area", ""),
             "Page count": item.get("pageCount"),
         }
@@ -262,14 +261,14 @@ if selected.empty:
     st.write("No qualifying papers for these professors in the selected years.")
 else:
     st.dataframe(
-        selected[["Professor", "Year", "Title", "Venue", "Area", "Page count"]]
+        selected[["Professor", "Year", "Title", "Area", "Page count"]]
         .sort_values(["Professor", "Year", "Title"], ascending=[True, False, True]),
         use_container_width=True,
         hide_index=True,
     )
     st.download_button(
         "Download selected professors' papers (CSV)",
-        data=selected[["Professor", "Year", "Title", "Venue", "Area", "Page count"]]
+        data=selected[["Professor", "Year", "Title", "Area", "Page count"]]
         .sort_values(["Professor", "Year", "Title"], ascending=[True, False, True])
         .to_csv(index=False).encode("utf-8-sig"),
         file_name=f"fiu_selected_professors_papers_{start_year}_{end_year}.csv",
@@ -288,7 +287,7 @@ if professor_papers.empty:
     st.write("No qualifying papers in the selected years.")
 else:
     st.dataframe(
-        professor_papers[["Year", "Title", "Venue", "Area", "Page count"]],
+        professor_papers[["Year", "Title", "Area", "Page count"]],
         use_container_width=True,
         hide_index=True,
     )
@@ -302,8 +301,8 @@ else:
 st.divider()
 # Nested output with all filtered roster members, including zero-paper professors.
 papers_by_professor = {
-    name: group[["Year", "Title", "Venue", "Area", "Page count"]]
-    .rename(columns={"Year": "year", "Title": "title", "Venue": "venue", "Area": "area", "Page count": "pageCount"})
+    name: group[["Year", "Title", "Area", "Page count"]]
+    .rename(columns={"Year": "year", "Title": "title", "Area": "area", "Page count": "pageCount"})
     .to_dict(orient="records")
     for name, group in selected.groupby("Professor")
 }
