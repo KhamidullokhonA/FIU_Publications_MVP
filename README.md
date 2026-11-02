@@ -2,14 +2,19 @@
 
 A Streamlit application for exploring CSRankings-eligible publications associated with Florida International University (FIU) faculty.
 
-The app uses a locally generated `articles.json` snapshot from the CSRankings data-processing pipeline and allows users to filter publications by year, view publication counts by professor, inspect the papers behind each count, and export results.
+The app uses a locally generated `articles.json` snapshot from the CSRankings data-processing pipeline and allows users to filter publications by date, view publication counts by professor, inspect the papers behind each count, and export results. By default, filtering uses publication years; users can optionally assign dates to specific research-area/year combinations, saved in `area_dates.json` for reuse.
 
 ## Features
 
-- Filter FIU publication records by start and end date
+- Filter FIU publication records by start and end date (year-based by default)
+- Optionally assign an exact date to each research-area/year combination to enable more precise filtering
+- Save entered dates in `area_dates.json` so they persist across app restarts
 - Count qualifying publications for each FIU-affiliated professor
 - View the individual papers behind each professor's count
-- Display publication year, title, venue, research area, and page count
+- Display publication year, title, research area, and page count
+- Select one or more professors to compare, or leave the selection empty to see all professors
+- Update the local publication snapshot using an existing CSRankings checkout
+- Back up the manually assigned dates through the application
 - Export professor counts as CSV
 - Export paper-level results as CSV
 - Export professor counts and paper lists as JSON
@@ -20,16 +25,18 @@ The app uses a locally generated `articles.json` snapshot from the CSRankings da
 ```text
 FIU_Publications_MVP/
 ├── fiu_publications_app.py
-├── articles.json       # Git LFS tracked
+├── articles.json           # Generated CSRankings snapshot (Git LFS)
 ├── requirements.txt
-└── README.md
+├── README.md
+├── area_dates.json       # Created after saving manual dates (local persistent mapping)
+└── .venv/                # Optional local virtual environment (do not commit)
 ```
 
-`articles.json` is generated from the CSRankings processing pipeline and is required to run the current version of the app.
+`articles.json` is generated from the CSRankings processing pipeline and is required to run the current version of the app. `area_dates.json` is a **separate** file next to the app script, created when manual dates are saved. Keep it when updating the snapshot or moving the project to another computer.
 
 ## Requirements
 
-- Python 3
+- Python 3 (with `venv` support)
 - Streamlit
 - pandas
 
@@ -147,37 +154,115 @@ Get-Item articles.json | Select-Object Name, Length
 
 `articles.json` should be roughly 150 MB. It must be in the same directory as `fiu_publications_app.py`.
 
-### 4. Install Python Dependencies
+### 4. Create and Activate a Virtual Environment
 
-**macOS:**
+A Python virtual environment is **recommended**. It isolates this project's dependencies from other Python projects. Run these commands from inside `FIU_Publications_MVP`.
 
-```bash
-python3 -m pip install -r requirements.txt
-```
-
-**Windows PowerShell:**
-
-```powershell
-py -m pip install -r requirements.txt
-```
-
-### 5. Run the Application
-
-**macOS:**
+**macOS — Terminal:**
 
 ```bash
-python3 -m streamlit run fiu_publications_app.py
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-**Windows PowerShell:**
+**Windows — PowerShell:**
 
 ```powershell
-py -m streamlit run fiu_publications_app.py
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+If PowerShell blocks the activation script, you can skip activation and call `.\.venv\Scripts\python.exe` directly in the commands below; changing the system-wide execution policy is not required.
+
+When activated, the terminal prompt usually begins with `(.venv)`.
+
+### 5. Install Python Dependencies
+
+With the virtual environment activated, run the same command on macOS or Windows:
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+### 6. Run the Application
+
+With the virtual environment activated:
+
+```bash
+python -m streamlit run fiu_publications_app.py
 ```
 
 Streamlit normally opens at `http://localhost:8501`.
 
-### Troubleshooting Git LFS
+When you finish, run `deactivate` to leave the virtual environment. On future sessions, reactivate the existing `.venv` rather than creating a new one. Do **not** commit `.venv` to Git; add `.venv/` to `.gitignore`.
+
+## Manually Assigned Research Area Dates
+
+The CSRankings snapshot provides publication years, but not necessarily exact calendar dates. In the app, open **Manage area/year dates (saved permanently)** to assign an exact date to an entire research-area/year combination.
+
+1. Select a **Year to edit**.
+2. Find the relevant **Area** in the table (for example, `ndss`).
+3. Enter a date using `YYYY-MM-DD` (for example, `2026-05-05`). The date must be within the selected year.
+4. Click **Save dates for this year**. The app writes the mapping to `area_dates.json` and reloads it.
+5. To clear an assignment, empty its date field and save the year again. Use **Back up saved dates (JSON)** to download a backup.
+
+The file is stored beside `fiu_publications_app.py` and uses keys of the form `YEAR|AREA`:
+
+```json
+{
+  "2026|ndss": "2026-05-05"
+}
+```
+
+**Important:** This is an *assigned area/year date*, not a verified date for each individual publication. All FIU author–paper records with `Year = 2026` and `Area = ndss` receive the same assigned date.
+
+### Filtering rules
+
+- **No assigned date:** A record is included whenever its publication **year** lies between the years of the selected start and end dates. Months and days are ignored for that record.
+- **Assigned date:** A record is included only if the exact date falls between the selected start and end dates, **inclusive**.
+- **Example:** With a filter of **April 5, 2025 – April 5, 2026**, an undated 2026 paper is included under the year-only rule, but a 2026 `ndss` paper assigned **May 5, 2026** is excluded.
+
+Saved dates persist across app restarts and are independent of `articles.json`. They are stored on the **computer running Streamlit**, not automatically synchronized between different computers or users. Copy or back up `area_dates.json` when migrating the app. The application validates the date format and requires each assigned date's year to match its key; invalid entries are rejected.
+
+## Updating Publication Data
+
+The **Update publication data** expander offers a **Check and update publication data** button. It is enabled only if the app finds a local CSRankings repository containing both Git metadata and `util/regenerate_data.py`.
+
+The app searches these locations in order:
+
+1. `CSRANKINGS_REPO` environment variable (if configured)
+2. `~/CSrankings`
+3. `~/Documents/CSrankings`
+4. A `CSrankings` folder beside the app's parent directory
+
+If your checkout is somewhere else, set `CSRANKINGS_REPO` **before starting Streamlit**:
+
+**macOS:**
+
+```bash
+export CSRANKINGS_REPO="$HOME/path/to/CSrankings"
+python -m streamlit run fiu_publications_app.py
+```
+
+**Windows PowerShell:**
+
+```powershell
+$env:CSRANKINGS_REPO = "C:\path\to\CSrankings"
+python -m streamlit run fiu_publications_app.py
+```
+
+When clicked, the update workflow:
+
+1. Runs `git pull --ff-only` in the CSRankings checkout.
+2. Requires the checkout to already contain `dblp.xml.xz`.
+3. Runs `util/split-csv.py` and `util/regenerate_data.py` using the app's Python interpreter.
+4. Validates that the generated `articles.json` contains FIU publication records.
+5. Replaces the tracker's `articles.json` only after successful validation, preserving the existing snapshot on failure.
+
+**Limitations:** This operation does **not** download a newer DBLP release; it regenerates using the DBLP snapshot already present in the checkout. The `git pull --ff-only` step fails if local tracked changes would be overwritten or if branches cannot be fast-forwarded. Resolve those changes in the CSRankings checkout before trying again. The update pipeline may require additional CSRankings dependencies beyond those required to run the tracker. The stored `area_dates.json` is not replaced by the snapshot update.
+
+## Troubleshooting Git LFS
 
 **`articles.json` is missing or very small:** From the tracker repository directory, try:
 
@@ -213,7 +298,7 @@ articles.json
     ↓
 Keep records associated with Florida International University
     ↓
-Filter records by the selected publication years
+Apply year-based filtering, or assigned area/year dates where available
     ↓
 Group records by professor
     ↓
@@ -222,7 +307,7 @@ Calculate publication counts
 Display the individual papers behind each count
 ```
 
-The current date inputs are interpreted at the **year level**. Months and days are not used because the CSRankings source records used by the app provide publication years rather than reliable exact publication dates.
+Date filters use the **publication year by default**. The month and day affect matching only when an exact date has been manually saved for that area/year combination.
 
 
 ## Important Data Notes
@@ -232,18 +317,22 @@ The current date inputs are interpreted at the **year level**. Months and days a
 - The faculty roster is derived from FIU-tagged records present in the snapshot, so a current FIU professor with no matching record in the snapshot may not appear.
 - Publication counts are author-publication records from the processed CSRankings data.
 - If multiple FIU professors coauthor the same paper, that paper can appear once under each professor.
+- Manually assigned dates apply to entire area/year combinations, not individual papers; they should not be treated as independently verified publication dates.
 - `articles.json` is a generated CSRankings data artifact. Review the applicable CSRankings and DBLP licensing terms before redistributing or publicly hosting generated datasets.
 
 ## Current MVP Scope
 
 The current MVP focuses on:
 
-- publication-year filtering
+- publication-year filtering with optional manually assigned area/year dates
+- JSON persistence and backup of area/year date assignments
+- optional professor comparison
+- on-demand snapshot regeneration from a local CSRankings checkout
 - professor-level publication counts
 - paper-level inspection
 - CSV and JSON export
 
-Automatic scheduled data refreshes and hosted update workflows are outside the current MVP and can be added later.
+An on-demand local data-regeneration workflow is included. Automatic scheduled updates, downloading new DBLP releases, and hosted multi-user synchronization are not implemented.
 
 ## Data Sources
 
