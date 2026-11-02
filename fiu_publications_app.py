@@ -18,6 +18,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+os.environ["PYTHONUTF8"] = "1"
 INSTITUTION = "Florida International University"
 DEFAULT_PATH = Path(__file__).resolve().parent / "articles.json"
 DATES_PATH = DEFAULT_PATH.parent / "area_dates.json"
