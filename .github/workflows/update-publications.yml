@@ -1,0 +1,97 @@
+
+name: Update FIU Publications
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-fiu-publications
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout FIU project
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install lxml xmltodict requests orjson
+
+      - name: Clone CSRankings
+        run: |
+          git clone --depth 1 --branch gh-pages \
+            https://github.com/emeryberger/CSrankings.git \
+            /tmp/CSrankings
+
+      - name: Generate publication data
+        working-directory: /tmp/CSrankings
+        run: |
+          python util/split-csv.py
+          python util/regenerate_data.py
+
+      - name: Validate and copy dataset
+        run: |
+          python - <<'PY'
+          import json
+          import shutil
+          from pathlib import Path
+
+          source = Path("/tmp/CSrankings/articles.json")
+          destination = Path("articles.json")
+
+          with source.open(encoding="utf-8") as f:
+              data = json.load(f)
+
+          if not isinstance(data, list):
+              raise ValueError("Dataset must be a list.")
+
+          fiu_count = sum(
+              1 for item in data
+              if isinstance(item, dict)
+              and item.get("institution") ==
+                  "Florida International University"
+              and item.get("name")
+              and item.get("title")
+              and isinstance(item.get("year"), int)
+          )
+
+          if fiu_count == 0:
+              raise ValueError("No FIU records found.")
+
+          print(f"Total records: {len(data):,}")
+          print(f"FIU records: {fiu_count:,}")
+
+          shutil.copyfile(source, destination)
+          PY
+
+      - name: Commit updated dataset
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git lfs install --local
+          git add articles.json
+
+          if git diff --cached --quiet; then
+            echo "No dataset changes."
+          else
+            git commit -m "Update FIU publications dataset"
+            git push
+          fi
