@@ -3,6 +3,8 @@ name: Update FIU Publications
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 8 * * 1'
 
 permissions:
   contents: write
