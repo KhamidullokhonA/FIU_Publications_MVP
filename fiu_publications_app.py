@@ -221,6 +221,38 @@ except (OSError, ValueError, json.JSONDecodeError) as exc:
 
 # A single assigned date is shared by all papers in the same area and publication year.
 # This is NOT an independently verified publication date for each paper.
+cloud_dates = is_cloud_storage()
+
+if cloud_dates:
+    if "date_editor_authenticated" not in st.session_state:
+        st.session_state.date_editor_authenticated = False
+
+    if not st.session_state.date_editor_authenticated:
+        with st.expander("Date editor login"):
+            with st.form("date_editor_login"):
+                password = st.text_input(
+                    "Owner password", type="password"
+                )
+                submitted = st.form_submit_button("Unlock editing")
+
+                if submitted:
+                    expected = st.secrets["OWNER_PASSWORD"]
+
+                    if hmac.compare_digest(password, expected):
+                        st.session_state.date_editor_authenticated = True
+                        st.rerun()
+                    else:
+                        st.error("Incorrect password.")
+
+    else:
+        if st.button("Lock date editor"):
+            st.session_state.date_editor_authenticated = False
+            st.rerun()
+
+can_edit_dates = (
+    not cloud_dates
+    or st.session_state.get("date_editor_authenticated", False)
+)
 with st.expander("Manage area/year dates (saved permanently)", expanded=not bool(area_dates)):
     st.caption(
         "Enter a YYYY-MM-DD date for each area and year (for example, ndss / 2026). "
@@ -247,7 +279,10 @@ with st.expander("Manage area/year dates (saved permanently)", expanded=not bool
         hide_index=True,
         use_container_width=True,
         num_rows="fixed",
-        disabled=["Area", "Papers"],
+        disabled= (
+            ["Area", "Papers"]
+            if can_edit_dates
+            else ["Area", "Papers", "Date (YYYY-MM-DD)"]),
         column_config={
             "Date (YYYY-MM-DD)": st.column_config.TextColumn(
                 "Date (YYYY-MM-DD)",
@@ -257,7 +292,7 @@ with st.expander("Manage area/year dates (saved permanently)", expanded=not bool
         },
         key=f"area_date_editor_{editing_year}",
     )
-    if st.button("Save dates for this year", key="save_area_dates"):
+    if can_edit_dates and st.button("Save dates for this year", key="save_area_dates"):
         updated = area_dates.copy()
         invalid = []
         for row in editor.itertuples(index=False, name=None):
@@ -279,11 +314,11 @@ with st.expander("Manage area/year dates (saved permanently)", expanded=not bool
             st.error("Dates must be valid YYYY-MM-DD values in the selected year: " + "; ".join(invalid))
         else:
             try:
-                save_area_dates(updated)
-            except OSError as exc:
-                st.error(f"Could not save area_dates.json: {exc}")
+                save_area_dates(updated, editing_year=editing_year)
+            except Exception as exc:
+                st.error(f"Could not save dates: {exc}")
             else:
-                st.success("Saved to area_dates.json. Dates will persist across app restarts.")
+                st.success("Dates saved successfully.")
                 st.rerun()
     st.download_button(
         "Back up saved dates (JSON)",
