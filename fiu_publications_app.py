@@ -190,10 +190,14 @@ with st.expander("Update publication data", expanded=False):
     )
     repo = locate_csrankings_repo()
     if repo is None:
-        st.warning(
-            "No local CSRankings checkout found. Set CSRANKINGS_REPO to its path "
-            "on the computer running Streamlit. Updates are unavailable until it is configured."
-        )
+    st.info(
+        "Publication updates are managed through GitHub Actions."
+    )
+    st.link_button(
+        "Update Publications on GitHub",
+        "https://github.com/KhamidullokhonA/"
+        "FIU_Publications_MVP/actions/workflows/update-publications.yml",
+    )
     else:
         st.caption(f"Data source: {repo}")
     if st.button("Check and update publication data", disabled=repo is None):
