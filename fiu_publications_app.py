@@ -190,14 +190,14 @@ with st.expander("Update publication data", expanded=False):
     )
     repo = locate_csrankings_repo()
     if repo is None:
-    st.info(
+        st.info(
         "Publication updates are managed through GitHub Actions."
-    )
-    st.link_button(
-        "Update Publications on GitHub",
-        "https://github.com/KhamidullokhonA/"
-        "FIU_Publications_MVP/actions/workflows/update-publications.yml",
-    )
+        )
+        st.link_button(
+            "Update Publications on GitHub",
+            "https://github.com/KhamidullokhonA/"
+            "FIU_Publications_MVP/actions/workflows/update-publications.yml",
+        )
     else:
         st.caption(f"Data source: {repo}")
     
