@@ -65,41 +65,6 @@ def load_fiu_articles(path: str, mtime_ns: int) -> pd.DataFrame:
     return df
 
 
-
-def load_area_dates() -> dict[str, str]:
-    """Read persistent user-assigned dates; never rely on Streamlit cache for edits."""
-    if not DATES_PATH.exists():
-        return {}
-    with DATES_PATH.open(encoding="utf-8") as f:
-        data = json.load(f)
-    if not isinstance(data, dict):
-        raise ValueError("area_dates.json must be a JSON object.")
-    for key, value in data.items():
-        if not isinstance(key, str) or not isinstance(value, str):
-            raise ValueError("area_dates.json must map keys to ISO date strings.")
-        year_str, separator, _area = key.partition("|")
-        if not separator or not year_str.isdigit() or date.fromisoformat(value).year != int(year_str):
-            raise ValueError(f"Invalid saved area date: {key} -> {value}")
-    return data
-
-
-def save_area_dates(data: dict[str, str]) -> None:
-    """Atomically replace the mapping so failed writes do not corrupt it."""
-    tmp_path = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="w", encoding="utf-8", dir=DATES_PATH.parent,
-            prefix=".area-dates-", suffix=".json", delete=False,
-        ) as output:
-            tmp_path = Path(output.name)
-            json.dump(data, output, indent=2, ensure_ascii=False, sort_keys=True)
-            output.write("\n")
-        os.replace(tmp_path, DATES_PATH)
-    finally:
-        if tmp_path is not None:
-            tmp_path.unlink(missing_ok=True)
-
-
 def area_year_key(year: int, area: str) -> str:
     return f"{year}|{area}"
 
