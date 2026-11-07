@@ -200,7 +200,9 @@ with st.expander("Update publication data", expanded=False):
     )
     else:
         st.caption(f"Data source: {repo}")
-    if st.button("Check and update publication data", disabled=repo is None):
+    
+    if repo is not None:
+        if st.button("Check and update publication data", disabled=repo is None):
         mutex = refresh_mutex()
         if not mutex.acquire(blocking=False):
             st.warning("An update is already running. Please try again later.")
