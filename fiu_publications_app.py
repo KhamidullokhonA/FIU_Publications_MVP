@@ -48,6 +48,7 @@ def load_fiu_articles(path: str, mtime_ns: int) -> pd.DataFrame:
             "Year": int(item["year"]),
             "Title": item["title"],
             "Area": item.get("area", ""),
+            "Number of authors": item.get("numauthors"),
             "Page count": item.get("pageCount"),
         }
         for item in records
@@ -405,14 +406,14 @@ if selected.empty:
     st.write("No qualifying papers in the selected date range.")
 else:
     st.dataframe(
-        selected[["Professor", "Year", "Title", "Area", "Assigned date", "Page count"]]
+        selected[["Professor", "Year", "Title", "Area", "Number of authors", "Assigned date", "Page count"]]
         .sort_values(["Professor", "Year", "Title"], ascending=[True, False, True]),
         use_container_width=True,
         hide_index=True,
     )
     st.download_button(
         "Download selected professors' papers (CSV)",
-        data=selected[["Professor", "Year", "Title", "Area", "Assigned date", "Page count"]]
+        data=selected[["Professor", "Year", "Title", "Area", "Number of authors", "Assigned date", "Page count"]]
         .sort_values(["Professor", "Year", "Title"], ascending=[True, False, True])
         .to_csv(index=False).encode("utf-8-sig"),
         file_name=f"fiu_selected_professors_papers_{start_year}_{end_year}.csv",
@@ -431,13 +432,13 @@ if professor_papers.empty:
     st.write("No qualifying papers in the selected date range.")
 else:
     st.dataframe(
-        professor_papers[["Year", "Title", "Area", "Assigned date", "Page count"]],
+        professor_papers[["Year", "Title", "Area", "Number of authors", "Assigned date", "Page count"]],
         use_container_width=True,
         hide_index=True,
     )
     st.download_button(
         "Download this professor's papers (CSV)",
-        data=professor_papers[["Year", "Title", "Area", "Assigned date", "Page count"]].to_csv(index=False).encode("utf-8-sig"),
+        data=professor_papers[["Year", "Title", "Area", "Number of authors", "Assigned date", "Page count"]].to_csv(index=False).encode("utf-8-sig"),
         file_name=f"fiu_professor_papers_{start_year}_{end_year}.csv",
         mime="text/csv",
     )
@@ -445,8 +446,8 @@ else:
 st.divider()
 # Nested output with all filtered roster members, including zero-paper professors.
 papers_by_professor = {
-    name: group[["Year", "Title", "Area", "Assigned date", "Page count"]]
-    .rename(columns={"Year": "year", "Title": "title", "Area": "area", "Assigned date": "assignedDate", "Page count": "pageCount"})
+    name: group[["Year", "Title", "Area", "Number of authors", "Assigned date", "Page count"]]
+    .rename(columns={"Year": "year", "Title": "title", "Area": "area", "Number of authors": "numauthors","Assigned date": "assignedDate", "Page count": "pageCount"})
     .to_dict(orient="records")
     for name, group in selected.groupby("Professor")
 }
