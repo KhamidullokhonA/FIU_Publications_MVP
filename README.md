@@ -4,6 +4,14 @@ A Streamlit application for exploring CSRankings-eligible publications associate
 
 The app uses a locally generated `articles.json` snapshot from the CSRankings data-processing pipeline and allows users to filter publications by date, view publication counts by professor, inspect the papers behind each count, and export results. By default, filtering uses publication years; users can optionally assign dates to specific research-area/year combinations, saved in `area_dates.json` for reuse.
 
+## Live Demo
+
+The FIU Publications MVP is deployed on Streamlit Community Cloud and can be accessed directly through your browser without any local installation.
+
+🌐 **[Launch FIU Publications MVP](https://fiupublications.streamlit.app/)**
+
+**Note:** The application may take a few moments to load after a period of inactivity due to Streamlit Community Cloud's resource management.
+
 ## Features
 
 - Filter FIU publication records by start and end date (year-based by default)
